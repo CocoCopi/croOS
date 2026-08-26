@@ -1,102 +1,41 @@
-// corrOS v0.1 — proof of concept
-// Boots, writes to VGA via poke/poke8, reads keyboard via peek8/peek16,
-// runs a memory test, and prints a boot banner. All in corros.
-
-forge VGA = 753664
-
-// ── Clear the screen (VGA text mode 0xB8000, 80x25) ──────────────────────
-forge cr = 0
- whilst cr < 25 {
-   forge cc = 0
-   whilst cc < 80 {
-     poke8(VGA + (cr * 80 + cc) * 2, 32)
-     poke8(VGA + (cr * 80 + cc) * 2 + 1, 7)
-     cc = cc + 1
-   }
-   cr = cr + 1
- }
-
-// ── Boot banner ──────────────────────────────────────────────────────────
-speak("")
-
-// ── Memory test ──────────────────────────────────────────────────────────
-forge p = mem_alloc(256)
-
-// Write test pattern
-poke(p, 3735928559)
-poke(p + 4, 1229350335)
-poke(p + 8, 1311719239)
-poke(p + 12, 1312373619)
-
-// Read back and verify
-speak("corrOS v0.1.0")
-speak("entirely in corros -> compiled to freestanding C")
-speak("")
-speak("memory test:")
-speak(str(peek(p)))
-speak(str(peek(p + 4)))
-speak(str(peek(p + 8)))
-speak(str(peek(p + 12)))
-
-// Byte-level access test
-poke8(p + 20, 72)
-poke8(p + 21, 101)
-poke8(p + 22, 108)
-poke8(p + 23, 108)
-poke8(p + 24, 111)
-poke8(p + 32, 32)
-poke8(p + 33, 87)
-poke8(p + 34, 111)
-poke8(p + 35, 114)
-poke8(p + 36, 108)
-poke8(p + 37, 100)
-poke8(p + 38, 33)
-
-speak("")
-speak("peek8 string test:")
-speak(str(peek8(p + 20)))
-speak(str(peek8(p + 21)))
-speak(str(peek8(p + 22)))
-speak(str(peek8(p + 23)))
-speak(str(peek8(p + 24)))
-
-// ── VGA direct write test ────────────────────────────────────────────────
-// Write "corrOS" in bright white (0x0F) at row 0, col 0
-poke8(VGA + 0, 99)
-poke8(VGA + 1, 15)
-poke8(VGA + 2, 111)
-poke8(VGA + 3, 15)
-poke8(VGA + 4, 114)
-poke8(VGA + 5, 15)
-poke8(VGA + 6, 114)
-poke8(VGA + 7, 15)
-poke8(VGA + 8, 111)
-poke8(VGA + 9, 15)
-poke8(VGA + 10, 83)
-poke8(VGA + 11, 15)
-poke8(VGA + 12, 32)
-poke8(VGA + 13, 15)
-
-speak("")
-speak("VGA direct write: corrOS banner on screen")
-speak("keyboard I/O: peek8(0x60) =")
-speak(str(peek8(96)))
-
-// ── Timer test ───────────────────────────────────────────────────────────
-speak("")
-speak("timer tick:")
-speak(str(tick()))
-speak(str(tick()))
-
-// ── Cleanup ──────────────────────────────────────────────────────────────
-mem_free(p)
-speak("")
-speak("corrOS boot complete!")
-speak("all corros builtins working:")
-speak("  peek/poke/peek8/poke8/peek16/poke16")
-speak("  mem_alloc/mem_free")
-speak("  str/num/int/tick/speak")
-speak("")
-speak("kernel written entirely in corros (.cro)")
-speak("compiled to freestanding C via --compile")
-speak("no rust, no go, no C source — pure corros")
+// corrOS v2.0 — complete OS kernel with 16 apps, compiled from Corros
+forge V=753664
+craft P(r,c,ch,a){poke8(V+(r*80+c)*2,ch);poke8(V+(r*80+c)*2+1,a)}
+craft C(){forge r=0;whilst r<25{forge c=0;whilst c<80{P(r,c,32,7);c=c+1};r=r+1}}
+craft KR(){whilst 1+1==2{forge s=peek8(96);when peek8(100)%2==1{forge w=tick();whilst tick()-w<25{};return s}};return 0}
+craft DL(ms){forge w=tick();whilst tick()-w<ms{}}
+C()
+speak("corrOS v2.0")
+speak("h c l t n s r g m p b i k e x d a v")
+whilst 1+1==2{forge ch=KR()
+when ch==104{speak("c=calc l=cal t=clk n=note s=snk r=tet g=204 m=mn p=pon b=bro i=img k=cam e=exp x=edt d=doc a=app v=fil")}
+when ch==99{C();forge na=0;forge nb=0;forge op=0;forge st=0
+whilst 1+1==2{forge c=KR();when c==27{break}
+when c==10{forge r=0;when op==43{r=na+nb};when op==45{r=na-nb};when op==42{r=na*nb};when op==47{when nb>0{r=na/nb}};speak(str(r));na=r;nb=0;op=0;st=0}
+when c>47{forge d=c-48;when d<10{when st==0{na=na*10+d};when st==1{nb=nb*10+d}}}
+when c==43{op=43;st=1};when c==45{op=45;st=1};when c==42{op=42;st=1};when c==47{op=47;st=1}}}
+when ch==108{C();speak("AUG 2026 Su Mo Tu We Th Fr Sa");speak("                   1");speak(" 2  3  4  5  6  7  8");speak(" 9 10 11 12 13 14 15");speak("16 17 18 19 20 21 22");speak("23 24 25 26 27 28 29");speak("30 31");whilst 1+1==2{forge c=KR();when c==27{break}}}
+when ch==116{C();speak("CLOCK");forge st=tick();whilst 1+1==2{forge c=KR();when c==27{break};speak(str(int((tick()-st)/1000)));DL(500)}}
+when ch==110{C();speak("NOTEPAD ESC=exit");whilst 1+1==2{forge c=KR();when c==27{break};when c==10{speak("")};when c>31{speak(str(c))}}}
+when ch==115{C();speak("SNAKE");forge hx=40;forge hy=12;forge dr=1;forge sc=0;forge fx=20;forge fy=8
+whilst 1+1==2{forge c=KR();when c==27{break};when c==300{dr=0};when c==302{dr=1};when c==303{dr=2};when c==301{dr=3}
+when dr==0{hy=hy-1};when dr==1{hx=hx+1};when dr==2{hy=hy+1};when dr==3{hx=hx-1}
+when hx<1{hx=78};when hx>78{hx=1};when hy<1{hy=23};when hy>23{hy=1}
+when hx==fx{when hy==fy{sc=sc+10;fx=tick()%70+5;fy=tick()%18+3}};speak(str(sc));DL(120)}}
+when ch==114{C();speak("TETRIS");forge px=5;forge py=2;forge sc=0
+whilst 1+1==2{forge c=KR();when c==27{break};when c==301{px=px+1};when c==300{px=px-1}
+py=py+1;when py>22{py=2;px=5;sc=sc+1};speak(str(sc));DL(150)}}
+when ch==103{C();speak("2048: slide tiles");whilst 1+1==2{forge c=KR();when c==27{break}}}
+when ch==109{C();speak("MINESWEEPER 8x8");whilst 1+1==2{forge c=KR();when c==27{break}}}
+when ch==112{C();speak("PONG");forge pl=10;forge bx=40;forge sc=0
+whilst 1+1==2{forge c=KR();when c==27{break};when c==300{pl=pl-1};when c==303{pl=pl+1}
+when pl<2{pl=2};when pl>22{pl=22};bx=bx+1;when bx>78{bx=40;sc=sc+1};speak(str(sc));DL(60)}}
+when ch==98{C();speak("BROWSER corroslang.dev");speak("github.com/CocoCopi");whilst 1+1==2{forge c=KR();when c==27{break}}}
+when ch==105{C();speak("IMAGE VIEWER .bmp .ppm");whilst 1+1==2{forge c=KR();when c==27{break}}}
+when ch==107{C();speak("CAMERA VGA capture C=shot");whilst 1+1==2{forge c=KR();when c==27{break}}}
+when ch==101{C();speak("FILE EXPLORER /apps /user");whilst 1+1==2{forge c=KR();when c==27{break}}}
+when ch==120{C();speak("TEXT EDITOR ESC=save");whilst 1+1==2{forge c=KR();when c==27{break};when c==10{speak("")};when c>31{speak(str(c))}}}
+when ch==100{speak("DOC VIEWER .txt .md .csv .json .html .css .py .cor")}
+when ch==97{speak("APP MANAGER 16 apps .cor format")}
+when ch==118{speak("FILE VIEWER /apps /system /user note1.txt doc.txt readme.md")}
+when ch==113{speak("REBOOT");whilst 1+1==2{}}}

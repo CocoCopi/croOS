@@ -1,0 +1,105 @@
+// corrOS calculator app
+forge VGA = 753664
+forge COLS = 80
+
+craft vga_put(r, c, ch, attr) {
+  poke8(VGA + (r * COLS + c) * 2, ch)
+  poke8(VGA + (r * COLS + c) * 2 + 1, attr)
+}
+
+craft vga_clear() {
+  forge r = 0
+  whilst r < 25 {
+    forge c = 0
+    whilst c < 80 {
+      vga_put(r, c, 32, 7)
+      c = c + 1
+    }
+    r = r + 1
+  }
+}
+
+craft kb_poll() {
+  when peek8(100) % 2 == 0 { return -1 }
+  return peek8(96)
+}
+
+craft sc2ascii(sc) {
+  when sc == 28 { return 10 }
+  when sc == 14 { return 8 }
+  when sc == 57 { return 32 }
+  when sc == 1 { return 27 }
+  when sc == 2 { return 49 }
+  when sc == 3 { return 50 }
+  when sc == 4 { return 51 }
+  when sc == 5 { return 52 }
+  when sc == 6 { return 53 }
+  when sc == 7 { return 54 }
+  when sc == 8 { return 55 }
+  when sc == 9 { return 56 }
+  when sc == 10 { return 57 }
+  when sc == 11 { return 48 }
+  when sc == 12 { return 45 }
+  when sc == 13 { return 61 }
+  when sc == 55 { return 42 }
+  return 0
+}
+
+craft kb_read() {
+  whilst 1 + 1 == 2 {
+    forge sc = kb_poll()
+    when sc >= 0 {
+      forge ch = sc2ascii(sc)
+      forge w = tick()
+      whilst tick() - w < 25 { }
+      return ch
+    }
+  }
+  return 0
+}
+
+vga_clear()
+
+forge num_a = 0
+forge num_b = 0
+forge op = 0
+forge stage = 0
+forge row = 2
+
+whilst 1 + 1 == 2 {
+  forge ch = kb_read()
+  when ch == 27 { return }
+
+  when ch >= 48 {
+    forge digit = ch - 48
+    when digit < 10 {
+      when stage == 0 {
+        num_a = num_a * 10 + digit
+        vga_put(row, 5, 48 + num_a, 10)
+      }
+      when stage == 1 {
+        num_b = num_b * 10 + digit
+        vga_put(row, 10, 48 + num_b, 10)
+      }
+    }
+  }
+  when ch == 43 { op = 43; stage = 1 }
+  when ch == 45 { op = 45; stage = 1 }
+  when ch == 42 { op = 42; stage = 1 }
+  when ch == 47 { op = 47; stage = 1 }
+
+  when ch == 10 {
+    forge result = 0
+    when op == 43 { result = num_a + num_b }
+    when op == 45 { result = num_a - num_b }
+    when op == 42 { result = num_a * num_b }
+    when op == 47 {
+      when num_b > 0 { result = num_a / num_b }
+    }
+    vga_put(20, 5, 48 + result, 14)
+    num_a = result
+    num_b = 0
+    op = 0
+    stage = 0
+  }
+}

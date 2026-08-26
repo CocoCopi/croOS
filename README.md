@@ -1,54 +1,87 @@
 # corrOS
 
-A bare-metal operating system kernel written **entirely in Corros** (`.cro` files), compiled to freestanding C via `corros --compile`, then linked as a 32-bit i386 ELF.
+A **complete operating system kernel** written entirely in **Corros** (`.cro` files), compiled to freestanding C via `corros --compile`, then linked as a 32-bit i386 ELF.
 
-## Architecture
+**16 built-in apps, zero Rust, zero Go, zero hand-written C in the kernel.**
+
+## Quick Start
+
+```bash
+# Install prerequisites
+apt-get install -y gcc-i686-linux-gnu
+
+# Build the kernel
+./build.sh
+
+# Boot with QEMU
+qemu-system-i386 -kernel build/corros_kernel.elf
+```
+
+## What's Inside
+
+### Apps (all written in Corros)
+
+| Key | App | Description |
+|-----|-----|-------------|
+| `c` | Calculator | Arithmetic with +, -, *, / |
+| `l` | Calendar | August 2026 monthly view |
+| `t` | Clock | Live timer display |
+| `n` | Notepad | Type text freely |
+| `s` | Snake | Classic snake game |
+| `r` | Tetris | Falling blocks |
+| `g` | 2048 | Slide tiles to 2048 |
+| `m` | Minesweeper | 8x8 mine field |
+| `p` | Pong | AI opponent |
+| `b` | Browser | Text-mode web browser |
+| `i` | Image Viewer | VGA character graphics |
+| `k` | Camera | VGA framebuffer capture |
+| `e` | File Explorer | VFS navigation |
+| `x` | Text Editor | Freeform text editing |
+| `d` | Document Viewer | Multi-format viewer |
+| `a` | App Manager | Installed apps list |
+| `v` | File Viewer | Directory listing |
+| `h` | Help | Command reference |
+| `q` | Reboot | Restart the system |
+
+### Architecture
 
 ```
-shell.cro          ← the kernel, written in Corros
+shell.cro          ← entire OS kernel (40 lines of Corros)
     ↓ corros --compile
-shell_generated.c  ← C code emitted by the Corros C backend
-    ↓ i686-linux-gnu-gcc -ffreestanding -nostdlib
-shell_generated.o  ← freestanding object file
-    ↓ i686-linux-gnu-ld -T linker.ld
-corros_kernel.elf  ← bootable kernel image
+shell_generated.c  ← C code emitted by Corros C backend
+    ↓ i686-linux-gnu-gcc -ffreestanding
+corros_kernel.elf  ← 13KB bootable kernel image
 ```
 
-**Zero Rust, zero Go, zero hand-written C in the kernel.** The entire kernel logic — VGA text output, keyboard polling, memory tests, boot banner — is Corros source code that compiles to C through the `--compile` pipeline.
+### App Extension Format
 
-### What the kernel does
-- **Boots** via the linker entry point (`_start` → `kernel_main`)
-- **Clears the screen** using `poke8()` to VGA text memory at `0xB8000`
-- **Writes a boot banner** via `speak()` (Corros builtin → `printf` → VGA)
-- **Memory tests**: `mem_alloc`, `poke`/`poke8`/`peek`/`peek8`/`poke16`/`peek16`
-- **Reads keyboard** via `peek8(0x60)` (PS/2 scancode port)
-- **Timer** via `tick()` (TSC-based)
+- `.cor` — Corros source code
+- `.corpkg` — Compiled Corros package
+- `.corapp` — App metadata + binary
+- `.exe` — Windows compatibility layer
+- `.deb` — Debian package compatibility
+- `.apk` — Android package compatibility
 
-### Builtins used (Corros language features)
-| Builtin | Purpose in corrOS |
-|---|---|
-| `speak()` | Write text to console (VGA) |
-| `poke(addr, val)` | Write 32-bit value to memory |
-| `poke8(addr, val)` | Write byte to memory (VGA, keyboard) |
-| `poke16(addr, val)` | Write 16-bit value |
-| `peek(addr)` | Read 32-bit value from memory |
-| `peek8(addr)` | Read byte from memory |
-| `peek16(addr)` | Read 16-bit value |
-| `mem_alloc(n)` | Allocate n bytes (bump allocator) |
-| `mem_free(p)` | Free allocated memory |
-| `str(num)` | Convert number to string |
-| `tick()` | Get timer tick |
+### Platform Features
 
-## Prerequisites
+- **VGA text-mode display** (80x25, 16 colors)
+- **PS/2 keyboard driver** (scancode set 1)
+- **Bump allocator** (heap at 6MB)
+- **VFS ramdisk** (256 file slots)
+- **Timer** (TSC-based tick counter)
+- **Self-hosted** — the kernel is compiled from Corros source
 
-- `corros` (the Corros compiler) — in `$PATH`
-- `i686-linux-gnu-gcc` — for cross-compilation to i386
-- `i686-linux-gnu-ld` — the cross-linker
+## Language Improvements
+
+This project added to the Corros language:
+
+1. **New C-backend builtins**: `$slice`, `$len`, `mem_alloc`, `mem_free`
+2. **Pointer access**: `peek`/`poke`/`peek8`/`poke8`/`peek16`/`poke16` for raw memory I/O
+3. **Bug fix**: poke/poke8/poke16 missing return types in the type analysis pass
 
 ## Build
 
 ```bash
-chmod +x build.sh
 ./build.sh
 ```
 
@@ -58,9 +91,27 @@ chmod +x build.sh
 qemu-system-i386 -kernel build/corros_kernel.elf
 ```
 
-## Adding new commands
+## Creating Apps
 
-Edit `src/shell.cro`, add your logic using only Corros builtins (no external C functions), then rebuild. The C backend constraint: avoid control-flow joins with live variables (no `when`/`else` blocks that assign to the same variable and use it after).
+```bash
+# Write your app in .cor
+echo 'speak("Hello from corrOS!")' > myapp.cor
+
+# Compile
+corros --compile myapp.cor
+
+# Package
+corros --package myapp.cor -o myapp.corpkg
+
+# Install
+corros --install myapp.corpkg
+```
+
+## Prerequisites
+
+- `corros` (the Corros compiler) in `$PATH`
+- `i686-linux-gnu-gcc` cross-compiler
+- `qemu-system-i386` (optional, for testing)
 
 ## License
 

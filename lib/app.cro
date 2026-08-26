@@ -1,0 +1,32 @@
+// corrOS App Framework — lib/app.cro
+// Apps link against this to get access to OS services
+// All I/O goes through VGA memory and keyboard ports
+
+forge VGA=753664
+forge KBD_PORT=96
+forge KBD_STATUS=100
+
+// ═══ Display ═══
+craft app_pixel(r,c,ch,attr){poke8(VGA+(r*80+c)*2,ch);poke8(VGA+(r*80+c)*2+1,attr)}
+craft app_clear(){forge r=0;whilst r<25{forge c=0;whilst c<80{app_pixel(r,c,32,7);c=c+1};r=r+1}}
+craft app_title(name){forge i=0;whilst i<9{app_pixel(0,3+i,name[i],31);i=i+1}}
+craft app_status(msg){forge i=0;whilst i<6{app_pixel(24,2+i,msg[i],112);i=i+1}}
+
+// ═══ Input ═══
+craft app_key_poll(){when peek8(KBD_STATUS)%2==0{return -1};return peek8(KBD_PORT)}
+craft app_key_wait(){
+  whilst 1+1==2{forge s=app_key_poll();
+  when s>=0{forge w=tick();whilst tick()-w<25{};return s}}
+  return 0}
+
+// ═══ Timing ═══
+craft app_delay(ms){forge w=tick();whilst tick()-w<ms{}}
+
+// ═══ Memory ═══
+craft app_alloc(n){return mem_alloc(n)}
+craft app_free(p){mem_free(p)}
+
+// ═══ String ═══
+craft app_str(n){return str(n)}
+craft app_len(s){return $len(s)}
+craft app_sub(s,a,b){return $slice(s,a,b)}
