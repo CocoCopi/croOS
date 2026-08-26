@@ -1,4 +1,4 @@
-// corrOS App Framework — lib/app.cro
+// croOS App Framework — lib/app.cro
 // Apps link against this to get access to OS services
 // All I/O goes through VGA memory and keyboard ports
 

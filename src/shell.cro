@@ -1,11 +1,11 @@
-// corrOS v2.0 — complete OS kernel with 16 apps, compiled from Corros
+// croOS v2.0 — complete OS kernel with 16 apps, compiled from Corros
 forge V=753664
 craft P(r,c,ch,a){poke8(V+(r*80+c)*2,ch);poke8(V+(r*80+c)*2+1,a)}
 craft C(){forge r=0;whilst r<25{forge c=0;whilst c<80{P(r,c,32,7);c=c+1};r=r+1}}
 craft KR(){whilst 1+1==2{forge s=peek8(96);when peek8(100)%2==1{forge w=tick();whilst tick()-w<25{};return s}};return 0}
 craft DL(ms){forge w=tick();whilst tick()-w<ms{}}
 C()
-speak("corrOS v2.0")
+speak("croOS v2.0")
 speak("h c l t n s r g m p b i k e x d a v")
 whilst 1+1==2{forge ch=KR()
 when ch==104{speak("c=calc l=cal t=clk n=note s=snk r=tet g=204 m=mn p=pon b=bro i=img k=cam e=exp x=edt d=doc a=app v=fil")}

@@ -1,4 +1,4 @@
-/* corrOS — boot stub
+/* croOS — boot stub
  * Multiboot header + GDT setup, in pure C (no NASM required).
  * The kernel entry point calls kmain() which is linked from the
  * Corros-written shell (compiled to C via --compile).

@@ -1,4 +1,4 @@
-// corrOS freestanding stdarg.h
+// croOS freestanding stdarg.h
 #ifndef _CORROS_STDARG_H
 #define _CORROS_STDARG_H
 typedef __builtin_va_list va_list;

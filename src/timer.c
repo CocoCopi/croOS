@@ -1,4 +1,4 @@
-/* corrOS — PIT timer (PIT channel 0, ~100 Hz). */
+/* croOS — PIT timer (PIT channel 0, ~100 Hz). */
 #include <stdint.h>
 #include "ports.h"
 

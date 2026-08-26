@@ -1,4 +1,4 @@
-/* corrOS — VGA text-mode driver (80×25, color 0x0F on 0x00). */
+/* croOS — VGA text-mode driver (80×25, color 0x0F on 0x00). */
 #include <stdint.h>
 #include <string.h>
 

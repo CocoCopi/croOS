@@ -1,4 +1,4 @@
-// corrOS freestanding runtime — provides libc symbols for corros --compile output
+// croOS freestanding runtime — provides libc symbols for corros --compile output
 #include "time.h"
 #include <stdint.h>
 #include <stddef.h>

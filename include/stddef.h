@@ -1,4 +1,4 @@
-// corrOS freestanding stddef.h
+// croOS freestanding stddef.h
 #ifndef _CORROS_STDDEF_H
 #define _CORROS_STDDEF_H
 typedef unsigned int size_t;

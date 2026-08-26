@@ -1,4 +1,4 @@
-// corrOS freestanding string.h
+// croOS freestanding string.h
 #ifndef _CORROS_STRING_H
 #define _CORROS_STRING_H
 #include <stddef.h>

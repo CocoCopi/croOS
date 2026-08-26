@@ -1,4 +1,4 @@
-// corrOS freestanding stdio.h
+// croOS freestanding stdio.h
 #ifndef _CORROS_STDIO_H
 #define _CORROS_STDIO_H
 #include <stddef.h>

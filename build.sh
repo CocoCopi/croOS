@@ -1,5 +1,5 @@
 #!/bin/bash
-# corrOS build script — compiles the Corros kernel to a freestanding ELF
+# croOS build script — compiles the Corros kernel to a freestanding ELF
 set -e
 cd "$(dirname "$0")"
 mkdir -p build
@@ -9,7 +9,7 @@ CC="i686-linux-gnu-gcc"
 LD="i686-linux-gnu-ld"
 LIBGCC=$(i686-linux-gnu-gcc -print-libgcc-file-name)
 
-echo "=== corrOS build ==="
+echo "=== croOS build ==="
 
 # Step 1: Compile shell.cro to C
 echo "[1/4] Compiling shell.cro to C..."

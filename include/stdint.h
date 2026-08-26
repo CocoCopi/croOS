@@ -1,4 +1,4 @@
-// corrOS freestanding stdint.h — uses GCC built-in types
+// croOS freestanding stdint.h — uses GCC built-in types
 #ifndef _CORROS_STDINT_H
 #define _CORROS_STDINT_H
 

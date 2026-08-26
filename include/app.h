@@ -1,4 +1,4 @@
-// corrOS App Framework — include/app.h
+// croOS App Framework — include/app.h
 // C header for apps compiled from Corros via --compile
 #ifndef CORROS_APP_H
 #define CORROS_APP_H

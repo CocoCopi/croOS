@@ -1,4 +1,4 @@
-// corrOS freestanding time.h
+// croOS freestanding time.h
 #ifndef _CORROS_TIME_H
 #define _CORROS_TIME_H
 #include <stdint.h>

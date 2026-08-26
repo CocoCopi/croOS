@@ -1,4 +1,4 @@
-/* corrOS — x86 port I/O. */
+/* croOS — x86 port I/O. */
 #include <stdint.h>
 
 uint8_t inb(uint16_t port)

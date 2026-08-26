@@ -1,6 +1,8 @@
-# corrOS
+# croOS
 
 A **complete operating system kernel** written entirely in **Corros** (`.cro` files), compiled to freestanding C via `corros --compile`, then linked as a 32-bit i386 ELF.
+
+**GitHub:** [github.com/CocoCopi/croOS](https://github.com/CocoCopi/croOS)
 
 **16 built-in apps, zero Rust, zero Go, zero hand-written C in the kernel.**
 
@@ -42,6 +44,8 @@ qemu-system-i386 -kernel build/corros_kernel.elf
 | `v` | File Viewer | Directory listing |
 | `h` | Help | Command reference |
 | `q` | Reboot | Restart the system |
+
+> **Name origin:** croOS = **Corros + OS**, a bare-metal operating system built entirely from scratch in the Corros programming language.
 
 ### Architecture
 
@@ -95,7 +99,7 @@ qemu-system-i386 -kernel build/corros_kernel.elf
 
 ```bash
 # Write your app in .cor
-echo 'speak("Hello from corrOS!")' > myapp.cor
+echo 'speak("Hello from croOS!")' > myapp.cor
 
 # Compile
 corros --compile myapp.cor

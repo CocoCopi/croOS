@@ -1,4 +1,4 @@
-# corrOS App Extension Format
+# croOS App Extension Format
 
 ## File Extensions
 
@@ -47,7 +47,7 @@ Compiled binary follows
 
 ```bash
 # 1. Write your app in .cor
-echo 'craft main(){speak("Hello from corrOS!")}' > hello.cor
+echo 'craft main(){speak("Hello from croOS!")}' > hello.cor
 
 # 2. Compile with --compile
 corros --compile hello.cor
@@ -55,7 +55,7 @@ corros --compile hello.cor
 # 3. Package as .corpkg
 corros --package hello.cor -o hello.corpkg
 
-# 4. Install to corrOS
+# 4. Install to croOS
 corros --install hello.corpkg
 ```
 
@@ -74,7 +74,7 @@ Apps use these builtins for I/O:
 ## Compatibility Layers
 
 ### .exe (Windows)
-Translates Win32 API calls to corrOS syscalls:
+Translates Win32 API calls to croOS syscalls:
 - `CreateFile` → VFS operations
 - `ReadFile` / `WriteFile` → VFS read/write
 - `MessageBox` → VGA text output

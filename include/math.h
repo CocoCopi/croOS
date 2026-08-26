@@ -1,4 +1,4 @@
-// corrOS freestanding math.h
+// croOS freestanding math.h
 #ifndef _CORROS_MATH_H
 #define _CORROS_MATH_H
 double fabs(double x);

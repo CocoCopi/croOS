@@ -1,4 +1,4 @@
-/* corrOS — freestanding runtime declarations.
+/* croOS — freestanding runtime declarations.
  * The Corros C backend emits #include <stdio.h>, <stdlib.h>, <string.h>,
  * <math.h>, <time.h>.  We intercept those with our own headers (via
  * -Iinclude -nostdinc) and provide equivalent implementations here.

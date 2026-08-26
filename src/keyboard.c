@@ -1,4 +1,4 @@
-/* corrOS — PS/2 keyboard (polling, no IRQ needed). */
+/* croOS — PS/2 keyboard (polling, no IRQ needed). */
 #include <stdint.h>
 #include "ports.h"
 
