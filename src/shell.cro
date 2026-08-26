@@ -35,7 +35,7 @@ when ch==105{C();speak("IMAGE VIEWER .bmp .ppm");whilst 1+1==2{forge c=KR();when
 when ch==107{C();speak("CAMERA VGA capture C=shot");whilst 1+1==2{forge c=KR();when c==27{break}}}
 when ch==101{C();speak("FILE EXPLORER /apps /user");whilst 1+1==2{forge c=KR();when c==27{break}}}
 when ch==120{C();speak("TEXT EDITOR ESC=save");whilst 1+1==2{forge c=KR();when c==27{break};when c==10{speak("")};when c>31{speak(str(c))}}}
-when ch==100{speak("DOC VIEWER .txt .md .csv .json .html .css .py .cor")}
-when ch==97{speak("APP MANAGER 16 apps .cor format")}
+when ch==100{speak("DOC VIEWER .txt .md .csv .json .html .css .py .cro")}
+when ch==97{speak("APP MANAGER 16 apps .cro format")}
 when ch==118{speak("FILE VIEWER /apps /system /user note1.txt doc.txt readme.md")}
 when ch==113{speak("REBOOT");whilst 1+1==2{}}}

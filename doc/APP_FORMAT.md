@@ -4,14 +4,14 @@
 
 | Extension | Description |
 |-----------|------------|
-| `.cor` | Corros source code |
-| `.corpkg` | Compiled Corros package (binary) |
-| `.corapp` | App metadata + compiled binary |
+| `.cro` | Corros source code |
+| `.cropkg` | Compiled Corros package (binary) |
+| `.croapp` | App metadata + compiled binary |
 | `.exe` | Windows executable (compatibility layer) |
 | `.deb` | Debian package (compatibility layer) |
 | `.apk` | Android package (compatibility layer) |
 
-## .corpkg Format
+## .cropkg Format
 
 ```
 Header (16 bytes):
@@ -28,7 +28,7 @@ Data section:
   String literals, static data
 ```
 
-## .corapp Format
+## .croapp Format
 
 ```
 Header (64 bytes):
@@ -46,17 +46,17 @@ Compiled binary follows
 ## Building an App
 
 ```bash
-# 1. Write your app in .cor
-echo 'craft main(){speak("Hello from croOS!")}' > hello.cor
+# 1. Write your app in .cro
+echo 'craft main(){speak("Hello from croOS!")}' > hello.cro
 
 # 2. Compile with --compile
-corros --compile hello.cor
+corros --compile hello.cro
 
-# 3. Package as .corpkg
-corros --package hello.cor -o hello.corpkg
+# 3. Package as .cropkg
+corros --package hello.cro -o hello.cropkg
 
 # 4. Install to croOS
-corros --install hello.corpkg
+corros --install hello.cropkg
 ```
 
 ## App API (via lib/app.cro)

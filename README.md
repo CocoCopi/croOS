@@ -59,9 +59,9 @@ corros_kernel.elf  ← 13KB bootable kernel image
 
 ### App Extension Format
 
-- `.cor` — Corros source code
-- `.corpkg` — Compiled Corros package
-- `.corapp` — App metadata + binary
+- `.cro` — Corros source code
+- `.cropkg` — Compiled Corros package
+- `.croapp` — App metadata + binary
 - `.exe` — Windows compatibility layer
 - `.deb` — Debian package compatibility
 - `.apk` — Android package compatibility
@@ -98,17 +98,17 @@ qemu-system-i386 -kernel build/corros_kernel.elf
 ## Creating Apps
 
 ```bash
-# Write your app in .cor
-echo 'speak("Hello from croOS!")' > myapp.cor
+# Write your app in .cro
+echo 'speak("Hello from croOS!")' > myapp.cro
 
 # Compile
-corros --compile myapp.cor
+corros --compile myapp.cro
 
 # Package
-corros --package myapp.cor -o myapp.corpkg
+corros --package myapp.cro -o myapp.cropkg
 
 # Install
-corros --install myapp.corpkg
+corros --install myapp.cropkg
 ```
 
 ## Prerequisites
