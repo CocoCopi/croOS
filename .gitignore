@@ -1,0 +1,9 @@
+build/
+*.o
+*.elf
+*.bin
+src/shell_generated.c
+src/shell
+target/
+*.bc
+*.tmp

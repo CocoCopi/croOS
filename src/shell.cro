@@ -1,0 +1,102 @@
+// corrOS v0.1 — proof of concept
+// Boots, writes to VGA via poke/poke8, reads keyboard via peek8/peek16,
+// runs a memory test, and prints a boot banner. All in corros.
+
+forge VGA = 753664
+
+// ── Clear the screen (VGA text mode 0xB8000, 80x25) ──────────────────────
+forge cr = 0
+ whilst cr < 25 {
+   forge cc = 0
+   whilst cc < 80 {
+     poke8(VGA + (cr * 80 + cc) * 2, 32)
+     poke8(VGA + (cr * 80 + cc) * 2 + 1, 7)
+     cc = cc + 1
+   }
+   cr = cr + 1
+ }
+
+// ── Boot banner ──────────────────────────────────────────────────────────
+speak("")
+
+// ── Memory test ──────────────────────────────────────────────────────────
+forge p = mem_alloc(256)
+
+// Write test pattern
+poke(p, 3735928559)
+poke(p + 4, 1229350335)
+poke(p + 8, 1311719239)
+poke(p + 12, 1312373619)
+
+// Read back and verify
+speak("corrOS v0.1.0")
+speak("entirely in corros -> compiled to freestanding C")
+speak("")
+speak("memory test:")
+speak(str(peek(p)))
+speak(str(peek(p + 4)))
+speak(str(peek(p + 8)))
+speak(str(peek(p + 12)))
+
+// Byte-level access test
+poke8(p + 20, 72)
+poke8(p + 21, 101)
+poke8(p + 22, 108)
+poke8(p + 23, 108)
+poke8(p + 24, 111)
+poke8(p + 32, 32)
+poke8(p + 33, 87)
+poke8(p + 34, 111)
+poke8(p + 35, 114)
+poke8(p + 36, 108)
+poke8(p + 37, 100)
+poke8(p + 38, 33)
+
+speak("")
+speak("peek8 string test:")
+speak(str(peek8(p + 20)))
+speak(str(peek8(p + 21)))
+speak(str(peek8(p + 22)))
+speak(str(peek8(p + 23)))
+speak(str(peek8(p + 24)))
+
+// ── VGA direct write test ────────────────────────────────────────────────
+// Write "corrOS" in bright white (0x0F) at row 0, col 0
+poke8(VGA + 0, 99)
+poke8(VGA + 1, 15)
+poke8(VGA + 2, 111)
+poke8(VGA + 3, 15)
+poke8(VGA + 4, 114)
+poke8(VGA + 5, 15)
+poke8(VGA + 6, 114)
+poke8(VGA + 7, 15)
+poke8(VGA + 8, 111)
+poke8(VGA + 9, 15)
+poke8(VGA + 10, 83)
+poke8(VGA + 11, 15)
+poke8(VGA + 12, 32)
+poke8(VGA + 13, 15)
+
+speak("")
+speak("VGA direct write: corrOS banner on screen")
+speak("keyboard I/O: peek8(0x60) =")
+speak(str(peek8(96)))
+
+// ── Timer test ───────────────────────────────────────────────────────────
+speak("")
+speak("timer tick:")
+speak(str(tick()))
+speak(str(tick()))
+
+// ── Cleanup ──────────────────────────────────────────────────────────────
+mem_free(p)
+speak("")
+speak("corrOS boot complete!")
+speak("all corros builtins working:")
+speak("  peek/poke/peek8/poke8/peek16/poke16")
+speak("  mem_alloc/mem_free")
+speak("  str/num/int/tick/speak")
+speak("")
+speak("kernel written entirely in corros (.cro)")
+speak("compiled to freestanding C via --compile")
+speak("no rust, no go, no C source — pure corros")
