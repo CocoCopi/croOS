@@ -6,6 +6,11 @@
 
 #define KB_BUFFER_SIZE 256
 
+/* Exposed for compositor non-blocking polling */
+extern volatile char kb_buffer[KB_BUFFER_SIZE];
+extern volatile int  kb_head;
+extern volatile int  kb_tail;
+
 void     kb_init(void);
 char     kb_getchar(void);
 uint8_t  kb_scancode(void);

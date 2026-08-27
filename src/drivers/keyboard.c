@@ -7,9 +7,9 @@
 #include "drivers/vga.h"
 #include "kernel/idt.h"
 
-static volatile char kb_buffer[KB_BUFFER_SIZE];
-static volatile int  kb_head = 0;
-static volatile int  kb_tail = 0;
+volatile char kb_buffer[KB_BUFFER_SIZE];
+volatile int  kb_head = 0;
+volatile int  kb_tail = 0;
 static volatile uint8_t modifiers = 0;
 
 /* Scancode set 1 → ASCII (unshifted / shifted) */

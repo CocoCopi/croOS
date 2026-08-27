@@ -1,5 +1,5 @@
 # croOS Makefile - Builds the full kernel
-# Auto-detects cross-compiler or falls back to native GCC
+# Auto-detects cross-compiler or fails with helpful message
 
 # Auto-detect CC
 CC := $(shell which i686-linux-gnu-gcc 2>/dev/null || which i686-elf-gcc 2>/dev/null || echo "")
@@ -19,7 +19,7 @@ ifeq ($(CC),)
 endif
 
 CFLAGS = -m32 -ffreestanding -fno-builtin -fno-stack-protector \
-         -nostdlib -nostdinc -Wall -Wextra \
+         -nostdlib -nostdinc -Wall -Wextra -Wno-unused-parameter \
          -Iinclude -Isrc -Isrc/kernel -c
 ASFLAGS = -m32 -ffreestanding -c
 LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
@@ -37,10 +37,13 @@ C_SRCS = $(SRC)/kernel/kmain.c \
          $(SRC)/kernel/idt.c \
          $(SRC)/kernel/process.c \
          $(SRC)/kernel/window.c \
+         $(SRC)/kernel/compositor.c \
+         $(SRC)/kernel/font.c \
          $(SRC)/mm/pmm.c \
          $(SRC)/mm/kmalloc.c \
          $(SRC)/mm/vmm.c \
          $(SRC)/drivers/vga.c \
+         $(SRC)/drivers/framebuffer.c \
          $(SRC)/drivers/keyboard.c \
          $(SRC)/drivers/timer.c \
          $(SRC)/drivers/serial.c \
@@ -64,7 +67,12 @@ C_SRCS = $(SRC)/kernel/kmain.c \
          $(SRC)/libc/string.c \
          $(SRC)/libc/math.c \
          $(SRC)/libc/stdio.c \
-         $(SRC)/libc/stdlib.c
+         $(SRC)/libc/stdlib.c \
+         $(SRC)/apps/terminal.c \
+         $(SRC)/apps/calculator.c \
+         $(SRC)/apps/file_manager.c \
+         $(SRC)/apps/text_editor.c \
+         $(SRC)/apps/about.c
 
 OBJS = $(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(C_SRCS)) \
        $(patsubst $(SRC)/%.S,$(BUILD)/%.o,$(AS_SRCS))
@@ -109,7 +117,7 @@ iso: $(TARGET)
 	@echo 'set timeout=5' > iso/boot/grub/grub.cfg
 	@echo 'set default=0' >> iso/boot/grub/grub.cfg
 	@echo '' >> iso/boot/grub/grub.cfg
-	@echo 'menuentry "croOS 4.0" {' >> iso/boot/grub/grub.cfg
+	@echo 'menuentry "croOS 4.0 HyperCorros" {' >> iso/boot/grub/grub.cfg
 	@echo '    multiboot /boot/croOS.elf' >> iso/boot/grub/grub.cfg
 	@echo '    boot' >> iso/boot/grub/grub.cfg
 	@echo '}' >> iso/boot/grub/grub.cfg
@@ -136,4 +144,3 @@ help:
 	@echo "  make iso"
 	@echo "  exit"
 	@echo "  qemu-system-i386 -kernel build/croOS.elf -m 256 -serial stdio"
-	@echo "  qemu-system-i386 -cdrom build/croOS.iso -m 256"
