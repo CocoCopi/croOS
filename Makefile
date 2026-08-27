@@ -86,5 +86,23 @@ clean:
 run: $(TARGET)
 	qemu-system-i386 -kernel $(TARGET) -serial stdio -display stdio
 
+iso: $(TARGET)
+	@mkdir -p iso/boot/grub
+	@cp $(TARGET) iso/boot/croOS.elf
+	@echo 'set timeout=5' > iso/boot/grub/grub.cfg
+	@echo 'set default=0' >> iso/boot/grub/grub.cfg
+	@echo '' >> iso/boot/grub/grub.cfg
+	@echo 'menuentry "croOS 3.0" {' >> iso/boot/grub/grub.cfg
+	@echo '    multiboot /boot/croOS.elf' >> iso/boot/grub/grub.cfg
+	@echo '    boot' >> iso/boot/grub/grub.cfg
+	@echo '}' >> iso/boot/grub/grub.cfg
+	grub-mkrescue -o $(BUILD)/croOS.iso iso/
+	@echo ''
+	@echo '  ISO: $(BUILD)/croOS.iso'
+	@stat -c '  Size: %s bytes' $(BUILD)/croOS.iso
+
+diso: $(TARGET)
+	qemu-system-i386 -cdrom $(BUILD)/croOS.iso -serial stdio -display stdio
+
 debug: $(TARGET)
 	qemu-system-i386 -kernel $(TARGET) -serial stdio -display stdio -s -S
