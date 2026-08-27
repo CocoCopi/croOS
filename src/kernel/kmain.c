@@ -1,6 +1,6 @@
 /* croOS kmain.c - Kernel entry point
  * Initializes GDT, IDT, memory, drivers, filesystem, networking.
- * Detects framebuffer from Multiboot and launches HyperCorros GUI.
+ * Detects framebuffer from bootloader (0x500) or Multiboot.
  * Falls back to text-mode shell if no framebuffer available. */
 
 #include "kernel/types.h"
@@ -27,42 +27,49 @@
 /* Multiboot constants */
 #define MULTIBOOT_MAGIC     0x2BADB002
 #define MB_FLAG_MEM         (1 << 0)
-#define MB_FLAG_VBE         (1 << 11)
 #define MB_FLAG_FB          (1 << 12)
 
-/*
- * Correct multiboot info structure layout (i386 spec).
- * All offsets verified against the Multiboot Specification v0.6.96.
- */
+/* Correct multiboot info layout (spec v0.6.96) */
 typedef struct {
     uint32_t flags;                 /* 0   */
-    uint32_t mem_lower;             /* 4   (if flags[0]) */
-    uint32_t mem_upper;             /* 8   (if flags[0]) */
-    uint32_t boot_device;           /* 12  (if flags[1]) */
-    uint32_t cmdline;               /* 16  (if flags[2]) */
-    uint32_t mods_count;            /* 20  (if flags[3]) */
-    uint32_t mods_addr;             /* 24  (if flags[3]) */
-    uint32_t syms[4];               /* 28  (if flags[4,5]) */
-    uint32_t mmap_length;           /* 44  (if flags[6]) */
-    uint32_t mmap_addr;             /* 48  (if flags[6]) */
-    uint32_t drives_length;         /* 52  (if flags[7]) */
-    uint32_t drives_addr;           /* 56  (if flags[7]) */
-    uint32_t config_table;          /* 60  (if flags[8]) */
-    uint32_t boot_loader_name;      /* 64  (if flags[9]) */
-    uint32_t apm_table;             /* 68  (if flags[10]) */
-    uint32_t vbe_control_info;      /* 72  (if flags[11]) */
-    uint32_t vbe_mode_info;         /* 76  (if flags[11]) */
-    uint16_t vbe_mode;              /* 80  (if flags[11]) */
-    uint16_t vbe_interface_seg;     /* 82  (if flags[11]) */
-    uint16_t vbe_interface_off;     /* 84  (if flags[11]) */
-    uint16_t vbe_interface_len;     /* 86  (if flags[11]) */
-    uint64_t framebuffer_addr;      /* 88  (if flags[12]) */
-    uint32_t framebuffer_pitch;     /* 96  (if flags[12]) */
-    uint32_t framebuffer_width;     /* 100 (if flags[12]) */
-    uint32_t framebuffer_height;    /* 104 (if flags[12]) */
-    uint8_t  framebuffer_bpp;       /* 108 (if flags[12]) */
-    uint8_t  framebuffer_type;      /* 109 (if flags[12]) */
+    uint32_t mem_lower;             /* 4   */
+    uint32_t mem_upper;             /* 8   */
+    uint32_t boot_device;           /* 12  */
+    uint32_t cmdline;               /* 16  */
+    uint32_t mods_count;            /* 20  */
+    uint32_t mods_addr;             /* 24  */
+    uint32_t syms[4];               /* 28  */
+    uint32_t mmap_length;           /* 44  */
+    uint32_t mmap_addr;             /* 48  */
+    uint32_t drives_length;         /* 52  */
+    uint32_t drives_addr;           /* 56  */
+    uint32_t config_table;          /* 60  */
+    uint32_t boot_loader_name;      /* 64  */
+    uint32_t apm_table;             /* 68  */
+    uint32_t vbe_control_info;      /* 72  */
+    uint32_t vbe_mode_info;         /* 76  */
+    uint16_t vbe_mode;              /* 80  */
+    uint16_t vbe_interface_seg;     /* 82  */
+    uint16_t vbe_interface_off;     /* 84  */
+    uint16_t vbe_interface_len;     /* 86  */
+    uint64_t framebuffer_addr;      /* 88  */
+    uint32_t framebuffer_pitch;     /* 96  */
+    uint32_t framebuffer_width;     /* 100 */
+    uint32_t framebuffer_height;    /* 104 */
+    uint8_t  framebuffer_bpp;       /* 108 */
+    uint8_t  framebuffer_type;      /* 109 */
 } __packed multiboot_t;
+
+/* Bootloader framebuffer info at 0x500 (set by boot.asm) */
+typedef struct {
+    uint32_t addr;      /* 0x500: framebuffer physical address */
+    uint32_t pitch;     /* 0x504: bytes per scanline */
+    uint32_t width;     /* 0x508: width in pixels */
+    uint32_t height;    /* 0x50C: height in pixels */
+    uint32_t bpp;       /* 0x510: bits per pixel */
+    uint8_t  available; /* 0x514: 1 if framebuffer is valid */
+    uint8_t  pad[3];    /* alignment */
+} __packed bootloader_fb_t;
 
 /* Simple shell (text-mode fallback) */
 static void kernel_shell(void) {
@@ -103,7 +110,7 @@ static void kernel_shell(void) {
     }
 }
 
-/* Kernel main - called from boot.S */
+/* Kernel main - called from boot.S or bootloader */
 void kmain(uint32_t magic, multiboot_t *mbi) {
     (void)magic;
 
@@ -121,7 +128,7 @@ void kmain(uint32_t magic, multiboot_t *mbi) {
     vga_puts("  Loading kernel...\n");
     serial_puts("[croOS] VGA + serial OK\n");
 
-    /* Phase 2: CPU tables (interrupts still OFF) */
+    /* Phase 2: CPU tables */
     serial_puts("[croOS] GDT...\n");
     gdt_init();
     serial_puts("[croOS] IDT...\n");
@@ -177,83 +184,66 @@ void kmain(uint32_t magic, multiboot_t *mbi) {
     process_init();
     serial_puts("[croOS] Scheduler OK\n");
 
-    /* Phase 9: Detect framebuffer and launch display */
+    /* Phase 9: Detect framebuffer and launch GUI */
     serial_puts("[croOS] Phase 9: Display\n");
 
     framebuffer_t fb_info = {0};
     uint8_t gui_mode = 0;
 
-    /* Safely check if bootloader provided framebuffer info */
-    if (mbi && (mbi->flags & MB_FLAG_FB)) {
-        /* Framebuffer info is present */
-        uint32_t fb_addr_lo = (uint32_t)(mbi->framebuffer_addr & 0xFFFFFFFF);
-        uint32_t fb_pitch = mbi->framebuffer_pitch;
-        uint32_t fb_w = mbi->framebuffer_width;
-        uint32_t fb_h = mbi->framebuffer_height;
-        uint8_t fb_bpp = mbi->framebuffer_bpp;
-
-        serial_puts("[croOS] FB raw: addr=");
-        serial_put_hex(fb_addr_lo);
-        serial_puts(" pitch=");
-        serial_put_dec(fb_pitch);
+    /* Source 1: Check bootloader framebuffer info at 0x500 */
+    bootloader_fb_t *bfb = (bootloader_fb_t*)0x500;
+    if (bfb->available && bfb->addr != 0 && bfb->width >= 320) {
+        serial_puts("[croOS] Bootloader FB: addr=");
+        serial_put_hex(bfb->addr);
         serial_puts(" ");
-        serial_put_dec(fb_w);
+        serial_put_dec(bfb->width);
         serial_puts("x");
-        serial_put_dec(fb_h);
+        serial_put_dec(bfb->height);
         serial_puts("@");
-        serial_put_dec(fb_bpp);
+        serial_put_dec(bfb->bpp);
         serial_puts("\n");
 
-        /* Validate: address must be non-zero, dimensions must be sane */
-        if (fb_addr_lo != 0 && fb_w >= 320 && fb_w <= 4096 &&
-            fb_h >= 200 && fb_h <= 4096 && fb_bpp >= 16) {
-            fb_info.address   = (uint32_t*)fb_addr_lo;
-            fb_info.pitch     = fb_pitch;
-            fb_info.width     = fb_w;
-            fb_info.height    = fb_h;
-            fb_info.bpp       = fb_bpp;
-            fb_info.available = 1;
+        fb_info.address   = (uint32_t*)bfb->addr;
+        fb_info.pitch     = bfb->pitch;
+        fb_info.width     = bfb->width;
+        fb_info.height    = bfb->height;
+        fb_info.bpp       = bfb->bpp;
+        fb_info.available = 1;
+        fb_init(&fb_info);
+        gui_mode = fb_available();
+    }
 
-            serial_puts("[croOS] Framebuffer validated OK\n");
+    /* Source 2: Check multiboot info (for GRUB boot) */
+    if (!gui_mode && mbi && (mbi->flags & MB_FLAG_FB)) {
+        uint32_t fb_addr = (uint32_t)(mbi->framebuffer_addr & 0xFFFFFFFF);
+        if (fb_addr != 0 && mbi->framebuffer_width >= 320) {
+            serial_puts("[croOS] Multiboot FB: addr=");
+            serial_put_hex(fb_addr);
+            serial_puts(" ");
+            serial_put_dec(mbi->framebuffer_width);
+            serial_puts("x");
+            serial_put_dec(mbi->framebuffer_height);
+            serial_puts("@");
+            serial_put_dec(mbi->framebuffer_bpp);
+            serial_puts("\n");
+
+            fb_info.address   = (uint32_t*)fb_addr;
+            fb_info.pitch     = mbi->framebuffer_pitch;
+            fb_info.width     = mbi->framebuffer_width;
+            fb_info.height    = mbi->framebuffer_height;
+            fb_info.bpp       = mbi->framebuffer_bpp;
+            fb_info.available = 1;
             fb_init(&fb_info);
             gui_mode = fb_available();
-        } else {
-            serial_puts("[croOS] FB invalid - using text mode\n");
-        }
-    } else {
-        serial_puts("[croOS] No FB info from bootloader\n");
-        serial_puts("[croOS] Trying QEMU VESA fallback...\n");
-
-        /* QEMU fallback: try common VESA framebuffer addresses */
-        /* When running with -vga std, QEMU maps the framebuffer
-         * at a high physical address. We probe a few known ones. */
-        uint32_t probe_addrs[] = { 0xFD000000, 0xFC000000, 0xFE000000, 0 };
-        uint32_t probe_sizes[] = { 1024*768*4, 1280*1024*4, 800*600*4, 0 };
-        uint32_t probe_w[]     = { 1024, 1280, 800, 0 };
-        uint32_t probe_h[]     = { 768, 1024, 600, 0 };
-
-        for (int i = 0; probe_addrs[i] != 0; i++) {
-            /* Check if memory is accessible (not all zeros, not page fault) */
-            volatile uint32_t *test = (volatile uint32_t*)probe_addrs[i];
-            /* Just reading from a high address might page fault if not mapped.
-             * Since we identity-mapped first 4MB only, these addresses (>=4MB)
-             * will page fault. That's expected and means no framebuffer there.
-             * We can't safely probe without full paging set up.
-             * So we skip this and just use text mode. */
-            (void)test;
-            (void)probe_sizes;
-            (void)probe_w;
-            (void)probe_h;
-            break;
         }
     }
 
     if (gui_mode) {
         vga_disable_cursor();
-        serial_puts("[croOS] GUI MODE - HyperCorros\n");
+        serial_puts("[croOS] GUI MODE - HyperCorros Desktop\n");
         serial_puts("[croOS] ================================\n");
     } else {
-        serial_puts("[croOS] Text mode (no framebuffer)\n");
+        serial_puts("[croOS] No framebuffer - text mode\n");
         serial_puts("[croOS] ================================\n");
     }
 
