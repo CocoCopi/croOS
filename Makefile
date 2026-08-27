@@ -2,28 +2,27 @@
 # Auto-detects cross-compiler or falls back to native GCC
 
 # Auto-detect CC
-CC := $(shell which i686-linux-gnu-gcc 2>/dev/null || which i686-elf-gcc 2>/dev/null || which gcc 2>/dev/null)
-LD := $(shell which i686-linux-gnu-ld 2>/dev/null || which i686-elf-ld 2>/dev/null || which ld 2>/dev/null)
+CC := $(shell which i686-linux-gnu-gcc 2>/dev/null || which i686-elf-gcc 2>/dev/null || echo "")
+LD := $(shell which i686-linux-gnu-ld 2>/dev/null || which i686-elf-ld 2>/dev/null || echo "")
 
-# Detect if cross-compiler or native
-IS_CROSS = $(findstring i686,$(CC))
-
-# Flags differ for cross vs native
-ifeq ($(IS_CROSS),)
-  # Native GCC - use -m32
-  CFLAGS = -m32 -ffreestanding -fno-builtin -fno-stack-protector \
-           -nostdlib -nostdinc -Wall -Wextra \
-           -Iinclude -Isrc -Isrc/kernel -c
-  ASFLAGS = -m32 -ffreestanding -c
-  LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
-else
-  # Cross compiler
-  CFLAGS = -m32 -ffreestanding -fno-builtin -fno-stack-protector \
-           -nostdlib -nostdinc -Wall -Wextra \
-           -Iinclude -Isrc -Isrc/kernel -c
-  ASFLAGS = -m32 -ffreestanding -c
-  LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
+# If no cross-compiler found, fail with helpful message
+ifeq ($(CC),)
+  $(error ============================================\
+    croOS requires an i686 cross-compiler.          \
+    Build inside proot-distro:                       \
+      proot-distro login ubuntu                      \
+      apt-get install -y gcc-i686-linux-gnu          \
+      cd /sdcard/Projects/croOS && make              \
+    Then run from Termux:                            \
+      qemu-system-i386 -kernel build/croOS.elf -m 256 -serial stdio\
+    ============================================)
 endif
+
+CFLAGS = -m32 -ffreestanding -fno-builtin -fno-stack-protector \
+         -nostdlib -nostdinc -Wall -Wextra \
+         -Iinclude -Isrc -Isrc/kernel -c
+ASFLAGS = -m32 -ffreestanding -c
+LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
 
 BUILD = build
 SRC = src
@@ -82,6 +81,9 @@ all: $(TARGET)
 	@stat -c "  Size:   %s bytes" $(TARGET) 2>/dev/null || true
 	@echo "  CC: $(CC)"
 	@echo "============================================"
+	@echo ""
+	@echo "  To run: qemu-system-i386 -kernel $(TARGET) -m 256 -serial stdio"
+	@echo "  To make ISO: make iso"
 
 $(TARGET): $(OBJS)
 	@mkdir -p $(dir $@)
@@ -107,20 +109,31 @@ iso: $(TARGET)
 	@echo 'set timeout=5' > iso/boot/grub/grub.cfg
 	@echo 'set default=0' >> iso/boot/grub/grub.cfg
 	@echo '' >> iso/boot/grub/grub.cfg
-	@echo 'menuentry "croOS 3.0" {' >> iso/boot/grub/grub.cfg
+	@echo 'menuentry "croOS 4.0" {' >> iso/boot/grub/grub.cfg
 	@echo '    multiboot /boot/croOS.elf' >> iso/boot/grub/grub.cfg
 	@echo '    boot' >> iso/boot/grub/grub.cfg
 	@echo '}' >> iso/boot/grub/grub.cfg
 	grub-mkrescue --modules="multiboot normal boot" -o $(BUILD)/croOS.iso iso/
-	@echo "  ISO: $(BUILD)/croOS.iso"
+	@echo ""
+	@echo "  ISO built: $(BUILD)/croOS.iso"
+	@echo "  To run: qemu-system-i386 -cdrom $(BUILD)/croOS.iso -m 256 -serial stdio"
 
 help:
-	@echo "Usage:"
-	@echo "  make          - Build croOS kernel"
-	@echo "  make clean    - Remove build artifacts"
-	@echo "  make run      - Build and run in QEMU"
-	@echo "  make iso      - Build bootable ISO"
+	@echo "croOS build system"
 	@echo ""
-	@echo "Manual QEMU commands:"
+	@echo "Usage (must be inside proot-distro):"
+	@echo "  make          Build croOS kernel"
+	@echo "  make clean    Remove build artifacts"
+	@echo "  make run      Build and run in QEMU"
+	@echo "  make iso      Build bootable ISO for Limbo/QEMU"
+	@echo "  make help     Show this help"
+	@echo ""
+	@echo "Quick start:"
+	@echo "  proot-distro login ubuntu"
+	@echo "  cd /sdcard/Projects/croOS"
+	@echo "  apt-get install -y gcc-i686-linux-gnu grub-pc-bin grub-common xorriso"
+	@echo "  make clean && make"
+	@echo "  make iso"
+	@echo "  exit"
 	@echo "  qemu-system-i386 -kernel build/croOS.elf -m 256 -serial stdio"
-	@echo "  qemu-system-i386 -cdrom build/croOS.iso -m 256 -serial stdio"
+	@echo "  qemu-system-i386 -cdrom build/croOS.iso -m 256"
