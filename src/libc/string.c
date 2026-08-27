@@ -1,6 +1,6 @@
-/* croOS string.c — C standard library string functions
+/* croOS string.c - C standard library string functions
  * strlen, strcpy, strncpy, strcmp, strncmp, strcat, strchr, strrchr,
- * memcpy, memmove, memset, memcmp, itoa, atoi, snprintf */
+ * memcpy, memmove, memset, memcmp, itoa, atoi, snprintf, vsnprintf */
 
 #include "kernel/types.h"
 
@@ -103,21 +103,17 @@ int memcmp(const void *a, const void *b, size_t n) {
     return 0;
 }
 
-/* Integer to string */
 int itoa(int value, char *buf, int base) {
     char tmp[32];
     int neg = 0, i = 0;
     unsigned int u;
-
-    if (value < 0 && base == 10) { neg = 1; u = -value; }
+    if (value < 0 && base == 10) { neg = 1; u = (unsigned int)-value; }
     else u = (unsigned int)value;
-
     do {
         int d = u % base;
         tmp[i++] = d < 10 ? '0' + d : 'A' + d - 10;
         u /= base;
     } while (u > 0);
-
     int j = 0;
     if (neg) buf[j++] = '-';
     while (i > 0) buf[j++] = tmp[--i];
@@ -125,34 +121,26 @@ int itoa(int value, char *buf, int base) {
     return j;
 }
 
-/* String to integer */
 int atoi(const char *s) {
     int n = 0, neg = 0;
     while (*s == ' ') s++;
     if (*s == '-') { neg = 1; s++; }
     else if (*s == '+') s++;
-    while (*s >= '0' && *s <= '9') {
-        n = n * 10 + (*s - '0');
-        s++;
-    }
+    while (*s >= '0' && *s <= '9') { n = n * 10 + (*s - '0'); s++; }
     return neg ? -n : n;
 }
 
-/* Simple snprintf */
-int snprintf(char *buf, size_t size, const char *fmt, ...) {
-    /* Minimal implementation: handles %d, %s, %x, %c, %u */
-    __builtin_va_list args;
-    __builtin_va_start(args, fmt);
-
+/* Core vsnprintf - does all the work */
+int vsnprintf(char *buf, size_t size, const char *fmt, __builtin_va_list args) {
     size_t pos = 0;
     const char *f = fmt;
 
     while (*f && pos < size - 1) {
         if (*f == '%' && *(f+1)) {
             f++;
-            /* Skip width/flags */
             while (*f == '-' || *f == '+' || *f == ' ' || *f == '0' ||
                    (*f >= '1' && *f <= '9')) f++;
+            if (*f == '*') { f++; /* skip width arg */ }
 
             char tmp[32];
             int len = 0;
@@ -168,12 +156,10 @@ int snprintf(char *buf, size_t size, const char *fmt, ...) {
                     if (v == 0) { tmp[0] = '0'; len = 1; }
                     else {
                         char hex[] = "0123456789abcdef";
-                        len = 0;
-                        unsigned int tmpv = v;
-                        while (tmpv > 0) { len++; tmpv >>= 4; }
+                        unsigned int tv = v; len = 0;
+                        while (tv > 0) { len++; tv >>= 4; }
                         for (int i = len - 1; i >= 0; i--) {
-                            tmp[i] = hex[v & 0xF];
-                            v >>= 4;
+                            tmp[i] = hex[v & 0xF]; v >>= 4;
                         }
                     }
                     break;
@@ -182,7 +168,8 @@ int snprintf(char *buf, size_t size, const char *fmt, ...) {
                     const char *s = __builtin_va_arg(args, const char*);
                     if (!s) s = "(null)";
                     len = strlen(s);
-                    memcpy(tmp, s, len);
+                    memcpy(tmp, s, len > 31 ? 31 : len);
+                    if (len > 31) len = 31;
                     break;
                 }
                 case 'c':
@@ -190,12 +177,10 @@ int snprintf(char *buf, size_t size, const char *fmt, ...) {
                     len = 1;
                     break;
                 case '%':
-                    tmp[0] = '%';
-                    len = 1;
+                    tmp[0] = '%'; len = 1;
                     break;
                 default:
-                    tmp[0] = *f;
-                    len = 1;
+                    tmp[0] = *f; len = 1;
                     break;
             }
             for (int i = 0; i < len && pos < size - 1; i++)
@@ -206,6 +191,14 @@ int snprintf(char *buf, size_t size, const char *fmt, ...) {
         f++;
     }
     buf[pos] = '\0';
-    __builtin_va_end(args);
     return (int)pos;
+}
+
+/* snprintf wraps vsnprintf */
+int snprintf(char *buf, size_t size, const char *fmt, ...) {
+    __builtin_va_list args;
+    __builtin_va_start(args, fmt);
+    int ret = vsnprintf(buf, size, fmt, args);
+    __builtin_va_end(args);
+    return ret;
 }

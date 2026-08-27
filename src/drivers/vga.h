@@ -22,6 +22,7 @@
 #define VGA_LGREEN  0xA
 #define VGA_LRED    0xC
 #define VGA_LBLUE   0x9
+#define VGA_LCYAN   0xB
 #define VGA_LYELLOW 0xD
 
 void vga_init(void);

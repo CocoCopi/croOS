@@ -1,8 +1,5 @@
-# croOS Makefile — Builds the full kernel
-# Usage: make          (build kernel)
-#        make clean    (clean build artifacts)
-#        make run      (run in QEMU)
-#        make debug    (run in QEMU with GDB stub)
+# croOS Makefile - Builds the full kernel
+# Usage: make / make clean / make run / make debug
 
 CC = i686-linux-gnu-gcc
 AS = i686-linux-gnu-gcc
@@ -17,17 +14,16 @@ LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
 BUILD = build
 SRC = src
 
-# Assembly sources (GAS syntax)
 AS_SRCS = $(SRC)/kernel/asm/boot.S \
           $(SRC)/kernel/asm/isr.S \
           $(SRC)/kernel/asm/gdt_flush.S \
           $(SRC)/kernel/asm/vmm.S
 
-# C sources
 C_SRCS = $(SRC)/kernel/kmain.c \
          $(SRC)/kernel/gdt.c \
          $(SRC)/kernel/idt.c \
          $(SRC)/kernel/process.c \
+         $(SRC)/kernel/window.c \
          $(SRC)/mm/pmm.c \
          $(SRC)/mm/kmalloc.c \
          $(SRC)/mm/vmm.c \
@@ -35,11 +31,27 @@ C_SRCS = $(SRC)/kernel/kmain.c \
          $(SRC)/drivers/keyboard.c \
          $(SRC)/drivers/timer.c \
          $(SRC)/drivers/serial.c \
+         $(SRC)/drivers/pci.c \
+         $(SRC)/drivers/ata.c \
+         $(SRC)/drivers/mouse.c \
+         $(SRC)/drivers/audio.c \
+         $(SRC)/drivers/usb.c \
          $(SRC)/fs/vfs.c \
          $(SRC)/fs/ramdisk.c \
+         $(SRC)/fs/fat16.c \
+         $(SRC)/fs/proc.c \
          $(SRC)/net/net.c \
+         $(SRC)/net/dhcp.c \
+         $(SRC)/net/dns.c \
+         $(SRC)/net/http.c \
+         $(SRC)/sys/syscall.c \
+         $(SRC)/sys/pipe.c \
+         $(SRC)/sys/signal.c \
+         $(SRC)/sys/elf.c \
          $(SRC)/libc/string.c \
-         $(SRC)/sys/syscall.c
+         $(SRC)/libc/math.c \
+         $(SRC)/libc/stdio.c \
+         $(SRC)/libc/stdlib.c
 
 OBJS = $(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(C_SRCS)) \
        $(patsubst $(SRC)/%.S,$(BUILD)/%.o,$(AS_SRCS))
@@ -50,11 +62,11 @@ TARGET = $(BUILD)/croOS.elf
 
 all: $(TARGET)
 	@echo ""
-	@echo "═══════════════════════════════════════════"
+	@echo "============================================"
 	@echo "  croOS kernel built successfully!"
 	@echo "  Output: $(TARGET)"
 	@stat -c "  Size:   %s bytes" $(TARGET) 2>/dev/null || true
-	@echo "═══════════════════════════════════════════"
+	@echo "============================================"
 
 $(TARGET): $(OBJS)
 	@mkdir -p $(dir $@)

@@ -22,5 +22,6 @@ int     memcmp(const void *a, const void *b, size_t n);
 int     itoa(int value, char *buf, int base);
 int     atoi(const char *s);
 int     snprintf(char *buf, size_t size, const char *fmt, ...);
+int     vsnprintf(char *buf, size_t size, const char *fmt, __builtin_va_list args);
 
 #endif
