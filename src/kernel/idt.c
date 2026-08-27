@@ -1,7 +1,8 @@
-/* croOS idt.c — IDT setup and interrupt dispatch */
+/* croOS idt.c -- IDT setup and interrupt dispatch */
 #include "kernel/types.h"
 #include "kernel/idt.h"
 #include "drivers/vga.h"
+#include "drivers/serial.h"
 #include "string.h"
 
 static idt_entry_t idt[IDT_ENTRIES];
@@ -83,16 +84,27 @@ static void idt_install(void) {
 }
 
 void idt_init(void) {
+    serial_puts("[croOS] IDT: loading descriptor...\n");
     idt_install();
 
-    /* Remap PIC: IRQ 0-7 → INT 32-47 */
-    outb(0x20, 0x11); outb(0xA0, 0x11);
-    outb(0x21, 0x20); outb(0xA1, 0x28);
-    outb(0x21, 0x04); outb(0xA1, 0x02);
-    outb(0x21, 0x01); outb(0xA1, 0x01);
-    outb(0x21, 0x00); outb(0xA1, 0x00);
+    /* Remap PIC: IRQ 0-7 -> INT 32-47 */
+    serial_puts("[croOS] IDT: remapping PIC...\n");
+    outb(0x20, 0x11); io_wait();
+    outb(0xA0, 0x11); io_wait();
+    outb(0x21, 0x20); io_wait();   /* Master PIC offset = 32 */
+    outb(0xA1, 0x28); io_wait();   /* Slave PIC offset = 40 */
+    outb(0x21, 0x04); io_wait();   /* Master: slave on IRQ2 */
+    outb(0xA1, 0x02); io_wait();   /* Slave: cascade identity */
+    outb(0x21, 0x01); io_wait();   /* 8086 mode */
+    outb(0xA1, 0x01); io_wait();   /* 8086 mode */
 
-    /* ISRs 0-31 */
+    /* Mask ALL IRQs initially -- we unmask individually later */
+    outb(0x21, 0xFF); io_wait();
+    outb(0xA1, 0xFF); io_wait();
+
+    serial_puts("[croOS] IDT: installing ISR gates 0-31...\n");
+
+    /* ISRs 0-31 (CPU exceptions) */
     idt_set_gate(0,  (uint32_t)isr0,  0x08, 0x8E);
     idt_set_gate(1,  (uint32_t)isr1,  0x08, 0x8E);
     idt_set_gate(2,  (uint32_t)isr2,  0x08, 0x8E);
@@ -126,7 +138,9 @@ void idt_init(void) {
     idt_set_gate(30, (uint32_t)isr30, 0x08, 0x8E);
     idt_set_gate(31, (uint32_t)isr31, 0x08, 0x8E);
 
-    /* IRQs 0-15 → INT 32-47 */
+    serial_puts("[croOS] IDT: installing IRQ gates 32-47...\n");
+
+    /* IRQs 0-15 -> INT 32-47 */
     idt_set_gate(32, (uint32_t)irq0,  0x08, 0x8E);
     idt_set_gate(33, (uint32_t)irq1,  0x08, 0x8E);
     idt_set_gate(34, (uint32_t)irq2,  0x08, 0x8E);
@@ -144,8 +158,11 @@ void idt_init(void) {
     idt_set_gate(46, (uint32_t)irq14, 0x08, 0x8E);
     idt_set_gate(47, (uint32_t)irq15, 0x08, 0x8E);
 
-    /* Enable interrupts NOW that all IDT entries are valid */
-    sti();
+    serial_puts("[croOS] IDT: all gates installed, sti deferred to kmain\n");
+
+    /* NOTE: sti() is NOT called here. Interrupts are enabled later
+     * in kmain() after all IRQ handlers are registered. This prevents
+     * triple-fault from unhandled IRQs during boot. */
 }
 
 void isr_install_handler(int n, isr_handler_t handler) {
@@ -155,7 +172,7 @@ void isr_uninstall_handler(int n) {
     if (n >= 0 && n < IDT_ENTRIES) handlers[n] = 0;
 }
 
-/* Called from ISR stubs */
+/* Called from ISR stubs (CPU exceptions) */
 void isr_handler(regs_t *r) {
     if (handlers[r->int_no]) {
         handlers[r->int_no](r);
@@ -178,9 +195,9 @@ void isr_handler(regs_t *r) {
     }
 }
 
-/* Called from IRQ stubs */
+/* Called from IRQ stubs (hardware interrupts) */
 void irq_handler(regs_t *r) {
-    /* Send EOI */
+    /* Send EOI to PIC */
     if (r->int_no >= 40) outb(0xA0, 0x20);
     outb(0x20, 0x20);
 

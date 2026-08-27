@@ -1,15 +1,29 @@
 # croOS Makefile - Builds the full kernel
-# Usage: make / make clean / make run / make debug
+# Auto-detects cross-compiler or falls back to native GCC
 
-CC = i686-linux-gnu-gcc
-AS = i686-linux-gnu-gcc
-LD = i686-linux-gnu-ld
+# Auto-detect CC
+CC := $(shell which i686-linux-gnu-gcc 2>/dev/null || which i686-elf-gcc 2>/dev/null || which gcc 2>/dev/null)
+LD := $(shell which i686-linux-gnu-ld 2>/dev/null || which i686-elf-ld 2>/dev/null || which ld 2>/dev/null)
 
-CFLAGS = -m32 -ffreestanding -fno-builtin -fno-stack-protector \
-         -nostdlib -nostdinc -Wall -Wextra \
-         -Iinclude -Isrc -Isrc/kernel -c
-ASFLAGS = -m32 -ffreestanding -c
-LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
+# Detect if cross-compiler or native
+IS_CROSS = $(findstring i686,$(CC))
+
+# Flags differ for cross vs native
+ifeq ($(IS_CROSS),)
+  # Native GCC - use -m32
+  CFLAGS = -m32 -ffreestanding -fno-builtin -fno-stack-protector \
+           -nostdlib -nostdinc -Wall -Wextra \
+           -Iinclude -Isrc -Isrc/kernel -c
+  ASFLAGS = -m32 -ffreestanding -c
+  LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
+else
+  # Cross compiler
+  CFLAGS = -m32 -ffreestanding -fno-builtin -fno-stack-protector \
+           -nostdlib -nostdinc -Wall -Wextra \
+           -Iinclude -Isrc -Isrc/kernel -c
+  ASFLAGS = -m32 -ffreestanding -c
+  LDFLAGS = -m elf_i386 -T linker.ld -nostdlib
+endif
 
 BUILD = build
 SRC = src
@@ -58,7 +72,7 @@ OBJS = $(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(C_SRCS)) \
 
 TARGET = $(BUILD)/croOS.elf
 
-.PHONY: all clean run debug
+.PHONY: all clean run iso help
 
 all: $(TARGET)
 	@echo ""
@@ -66,6 +80,7 @@ all: $(TARGET)
 	@echo "  croOS kernel built successfully!"
 	@echo "  Output: $(TARGET)"
 	@stat -c "  Size:   %s bytes" $(TARGET) 2>/dev/null || true
+	@echo "  CC: $(CC)"
 	@echo "============================================"
 
 $(TARGET): $(OBJS)
@@ -78,13 +93,13 @@ $(BUILD)/%.o: $(SRC)/%.c
 
 $(BUILD)/%.o: $(SRC)/%.S
 	@mkdir -p $(dir $@)
-	$(AS) $(ASFLAGS) -o $@ $<
+	$(CC) $(ASFLAGS) -o $@ $<
 
 clean:
 	rm -rf $(BUILD)
 
 run: $(TARGET)
-	qemu-system-i386 -kernel $(TARGET) -serial stdio -display stdio
+	qemu-system-i386 -kernel $(TARGET) -m 256 -serial stdio
 
 iso: $(TARGET)
 	@mkdir -p iso/boot/grub
@@ -96,13 +111,16 @@ iso: $(TARGET)
 	@echo '    multiboot /boot/croOS.elf' >> iso/boot/grub/grub.cfg
 	@echo '    boot' >> iso/boot/grub/grub.cfg
 	@echo '}' >> iso/boot/grub/grub.cfg
-	grub-mkrescue -o $(BUILD)/croOS.iso iso/
-	@echo ''
-	@echo '  ISO: $(BUILD)/croOS.iso'
-	@stat -c '  Size: %s bytes' $(BUILD)/croOS.iso
+	grub-mkrescue --modules="multiboot normal boot" -o $(BUILD)/croOS.iso iso/
+	@echo "  ISO: $(BUILD)/croOS.iso"
 
-diso: $(TARGET)
-	qemu-system-i386 -cdrom $(BUILD)/croOS.iso -serial stdio -display stdio
-
-debug: $(TARGET)
-	qemu-system-i386 -kernel $(TARGET) -serial stdio -display stdio -s -S
+help:
+	@echo "Usage:"
+	@echo "  make          - Build croOS kernel"
+	@echo "  make clean    - Remove build artifacts"
+	@echo "  make run      - Build and run in QEMU"
+	@echo "  make iso      - Build bootable ISO"
+	@echo ""
+	@echo "Manual QEMU commands:"
+	@echo "  qemu-system-i386 -kernel build/croOS.elf -m 256 -serial stdio"
+	@echo "  qemu-system-i386 -cdrom build/croOS.iso -m 256 -serial stdio"

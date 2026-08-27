@@ -1,4 +1,4 @@
-/* croOS kmain.c — Kernel entry point
+/* croOS kmain.c -- Kernel entry point
  * Initializes GDT, IDT, memory, filesystem, networking, processes.
  * Then launches the init process (shell) and enters the scheduler. */
 
@@ -37,31 +37,17 @@ typedef struct {
 
 /* Kernel banner */
 static const char *banner[] = {
-    "╔══════════════════════════════════════════════════════════════════════════════╗",
-    "║                          croOS — Corros Operating System                    ║",
-    "║                          Version 3.0 — Full Kernel                          ║",
-    "║                          Built 100% in Corros (.cro) + C                     ║",
-    "╠══════════════════════════════════════════════════════════════════════════════╣",
-    "║  Memory:          Process Scheduler:   VGA:                                 ║",
-    "║  PMM:   ✓        Round-Robin: ✓       80x25 Color: ✓                       ║",
-    "║  VMM:   ✓        64 Procs Max:  ✓     16 Colors:  ✓                        ║",
-    "║  Heap:  ✓        Context Switch: ✓    Cursor:    ✓                         ║",
-    "╠══════════════════════════════════════════════════════════════════════════════╣",
-    "║  Drivers:              Filesystem:         Networking:                      ║",
-    "║  Keyboard: ✓          VFS:    ✓            ARP:     ✓                       ║",
-    "║  Timer:    ✓          RAMDISK: ✓           ICMP:    ✓                       ║",
-    "║  Serial:   ✓          FAT16:  (TODO)       TCP/IP:  ✓                       ║",
-    "║  PCI:      ✓          ext2:   (TODO)       UDP:     ✓                       ║",
-    "║  E1000:    ✓                                                   ✓           ║",
-    "╠══════════════════════════════════════════════════════════════════════════════╣",
-    "║  System Calls: 42  │  Apps: 16  │  License: MIT  │  github.com/CocoCopi/croOS ║",
-    "╚══════════════════════════════════════════════════════════════════════════════╝",
+    "============================================",
+    "          croOS - Corros Operating System    ",
+    "          Version 4.0 - Real Kernel          ",
+    "          Built in Corros (.cro) + C         ",
+    "============================================",
 };
 
 static void print_banner(void) {
     vga_clear();
     vga_set_color(VGA_CYAN, VGA_BLACK);
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < 5; i++) {
         vga_puts(banner[i]);
         vga_putchar('\n');
     }
@@ -71,6 +57,11 @@ static void print_banner(void) {
 static void detect_memory(multiboot_t *mbi) {
     uint32_t mem_kb = mbi->mem_lower;
     uint32_t mem_mb = mem_kb / 1024 + 1;
+    serial_puts("[croOS] Memory: ");
+    serial_put_dec(mem_mb);
+    serial_puts(" MB (");
+    serial_put_dec(mem_kb);
+    serial_puts(" KB)\n");
     vga_set_color(VGA_WHITE, VGA_BLACK);
     vga_puts("  Memory detected: ");
     vga_put_dec(mem_mb);
@@ -115,36 +106,36 @@ static void kernel_shell(void) {
             vga_set_color(VGA_LYELLOW, VGA_BLACK);
             vga_puts("  croOS built-in commands:\n");
             vga_set_color(VGA_WHITE, VGA_BLACK);
-            vga_puts("  help     — show this help\n");
-            vga_puts("  version  — show OS version\n");
-            vga_puts("  mem      — memory usage\n");
-            vga_puts("  procs    — process list\n");
-            vga_puts("  clear    — clear screen\n");
-            vga_puts("  uptime   — system uptime\n");
-            vga_puts("  ls       — list files\n");
-            vga_puts("  cat      — read file\n");
-            vga_puts("  mkdir    — create directory\n");
-            vga_puts("  touch    — create file\n");
-            vga_puts("  rm       — remove file\n");
-            vga_puts("  echo     — print text\n");
-            vga_puts("  calc     — calculator\n");
-            vga_puts("  snake    — snake game\n");
-            vga_puts("  tetris   — tetris game\n");
-            vga_puts("  pong     — pong game\n");
-            vga_puts("  2048     — 2048 game\n");
-            vga_puts("  ping     — ping host\n");
-            vga_puts("  ps       — processes\n");
-            vga_puts("  top      — system monitor\n");
-            vga_puts("  uname    — kernel info\n");
-            vga_puts("  reboot   — restart system\n");
-            vga_puts("  shutdown — power off\n");
+            vga_puts("  help     -- show this help\n");
+            vga_puts("  version  -- show OS version\n");
+            vga_puts("  mem      -- memory usage\n");
+            vga_puts("  procs    -- process list\n");
+            vga_puts("  clear    -- clear screen\n");
+            vga_puts("  uptime   -- system uptime\n");
+            vga_puts("  ls       -- list files\n");
+            vga_puts("  cat      -- read file\n");
+            vga_puts("  mkdir    -- create directory\n");
+            vga_puts("  touch    -- create file\n");
+            vga_puts("  rm       -- remove file\n");
+            vga_puts("  echo     -- print text\n");
+            vga_puts("  calc     -- calculator\n");
+            vga_puts("  snake    -- snake game\n");
+            vga_puts("  tetris   -- tetris game\n");
+            vga_puts("  pong     -- pong game\n");
+            vga_puts("  2048     -- 2048 game\n");
+            vga_puts("  ping     -- ping host\n");
+            vga_puts("  ps       -- processes\n");
+            vga_puts("  top      -- system monitor\n");
+            vga_puts("  uname    -- kernel info\n");
+            vga_puts("  reboot   -- restart system\n");
+            vga_puts("  shutdown -- power off\n");
         } else if (strcmp(input, "version") == 0 || strcmp(input, "uname") == 0) {
             vga_set_color(VGA_LGREEN, VGA_BLACK);
-            vga_puts("  croOS 3.0.0 (");
+            vga_puts("  croOS 4.0.0 (");
             vga_put_dec(sizeof(void*) * 8);
-            vga_puts("-bit) — Built entirely in Corros\n");
+            vga_puts("-bit) -- Built entirely in Corros\n");
             vga_puts("  Kernel: croOS kernel\n");
-            vga_puts("  Compiler: Corros → C → GCC\n");
+            vga_puts("  Compiler: Corros -> C -> GCC\n");
         } else if (strcmp(input, "mem") == 0) {
             uint32_t free_pages = pmm_get_free_pages();
             uint32_t total_pages = pmm_get_total_pages();
@@ -190,7 +181,7 @@ static void kernel_shell(void) {
             vga_set_color(VGA_LGREEN, VGA_BLACK);
             vga_puts("  croOS System Monitor\n");
             vga_set_color(VGA_WHITE, VGA_BLACK);
-            vga_puts("  ─────────────────────────────\n");
+            vga_puts("  -----------------------------------\n");
             vga_puts("  CPU:  ");
             vga_put_dec(pmm_get_free_pages() * 100 / pmm_get_total_pages());
             vga_puts("% idle\n");
@@ -202,7 +193,7 @@ static void kernel_shell(void) {
             vga_puts("  Procs: ");
             vga_put_dec(MAX_PROCS);
             vga_puts(" max\n");
-            vga_puts("  ─────────────────────────────\n");
+            vga_puts("  -----------------------------------\n");
         } else if (strncmp(input, "ls", 2) == 0) {
             char name[64];
             int idx = 0;
@@ -244,75 +235,135 @@ static void kernel_shell(void) {
     }
 }
 
-/* Kernel main — called from boot.S */
+/* Kernel main -- called from boot.S */
 void kmain(uint32_t magic, multiboot_t *mbi) {
     (void)magic;
-    /* Initialize hardware */
+
+    /* ---- Phase 1: Serial + VGA init (no hardware yet) ---- */
     serial_init();
-    serial_puts("[croOS] Booting...\n");
+    serial_puts("\n[croOS] ============================\n");
+    serial_puts("[croOS] Phase 1: Early console\n");
+    serial_puts("[croOS] ============================\n");
 
     vga_init();
     vga_clear();
     print_banner();
 
-    /* Initialize subsystems */
+    serial_puts("[croOS] VGA and serial OK\n");
+
+    /* ---- Phase 2: CPU tables (GDT, IDT) ---- */
+    serial_puts("[croOS] Phase 2: CPU tables\n");
+
+    serial_puts("[croOS] Initializing GDT...\n");
     gdt_init();
-    serial_puts("[croOS] GDT initialized\n");
+    serial_puts("[croOS] GDT initialized (6 entries)\n");
 
+    serial_puts("[croOS] Initializing IDT...\n");
     idt_init();
-    serial_puts("[croOS] IDT initialized\n");
+    serial_puts("[croOS] IDT initialized (48 gates, IRQs masked)\n");
 
-    /* Detect and initialize memory */
-    detect_memory(mbi);
-    uint32_t mem_kb = mbi->mem_lower + 1024;
+    /* NOTE: interrupts are still OFF here (cli from boot.S) */
+
+    /* ---- Phase 3: Memory ---- */
+    serial_puts("[croOS] Phase 3: Memory\n");
+
+    if (mbi) {
+        detect_memory(mbi);
+    } else {
+        serial_puts("[croOS] WARNING: no multiboot info, assuming 32MB\n");
+    }
+
+    uint32_t mem_kb = 32768; /* default 32MB if no multiboot */
+    if (mbi && mbi->mem_lower > 0) {
+        mem_kb = mbi->mem_lower + 1024;
+    }
     uint32_t mem_bytes = mem_kb * 1024;
     if (mem_bytes > 128 * 1024 * 1024) mem_bytes = 128 * 1024 * 1024;
 
+    serial_puts("[croOS] Initializing PMM...\n");
     pmm_init(mem_bytes);
+    serial_puts("[croOS] PMM OK, ");
+    serial_put_dec(pmm_get_free_pages());
+    serial_puts(" free pages\n");
     vga_set_color(VGA_LGREEN, VGA_BLACK);
-    vga_puts("  [✓] Physical Memory Manager initialized\n");
+    vga_puts("  [OK] Physical Memory Manager initialized\n");
 
+    serial_puts("[croOS] Initializing kernel heap...\n");
     kmalloc_init();
-    vga_puts("  [✓] Kernel Heap allocator initialized\n");
+    serial_puts("[croOS] Heap OK\n");
+    vga_puts("  [OK] Kernel Heap allocator initialized\n");
 
+    serial_puts("[croOS] Initializing VMM + paging...\n");
     vmm_init();
-    vga_puts("  [✓] Virtual Memory Manager initialized (paging enabled)\n");
+    serial_puts("[croOS] VMM OK (paging enabled)\n");
+    vga_puts("  [OK] Virtual Memory Manager initialized (paging enabled)\n");
 
-    /* Drivers */
-    timer_init(100);  /* 100 Hz */
-    vga_puts("  [✓] PIT Timer at 100 Hz\n");
+    /* ---- Phase 4: Drivers (no interrupts yet) ---- */
+    serial_puts("[croOS] Phase 4: Drivers\n");
 
+    serial_puts("[croOS] Initializing PIT timer (100 Hz)...\n");
+    timer_init(100);
+    serial_puts("[croOS] PIT timer OK, handler on INT32\n");
+    vga_puts("  [OK] PIT Timer at 100 Hz\n");
+
+    serial_puts("[croOS] Initializing PS/2 keyboard...\n");
     kb_init();
-    vga_puts("  [✓] PS/2 Keyboard driver loaded (IRQ1)\n");
+    serial_puts("[croOS] Keyboard OK, handler on INT33\n");
+    vga_puts("  [OK] PS/2 Keyboard driver loaded (IRQ1)\n");
 
-    vga_puts("  [✓] VGA text-mode driver (80x25, 16 colors)\n");
-    vga_puts("  [✓] Serial port driver (COM1)\n");
+    vga_puts("  [OK] VGA text-mode driver (80x25, 16 colors)\n");
+    vga_puts("  [OK] Serial port driver (COM1)\n");
 
-    /* Filesystem */
+    /* ---- Phase 5: Filesystem ---- */
+    serial_puts("[croOS] Phase 5: Filesystem\n");
+
+    serial_puts("[croOS] Initializing VFS...\n");
     vfs_init();
     vfs_init_ramdisk();
+    serial_puts("[croOS] VFS + ramdisk OK\n");
     vga_set_color(VGA_LGREEN, VGA_BLACK);
-    vga_puts("  [✓] VFS initialized with ramdisk\n");
+    vga_puts("  [OK] VFS initialized with ramdisk\n");
 
-    /* Networking */
+    /* ---- Phase 6: Networking ---- */
+    serial_puts("[croOS] Phase 6: Network\n");
+
+    serial_puts("[croOS] Initializing TCP/IP stack...\n");
     net_init();
-    vga_puts("  [✓] TCP/IP networking stack initialized\n");
+    serial_puts("[croOS] Network OK\n");
+    vga_puts("  [OK] TCP/IP networking stack initialized\n");
 
-    /* System calls */
+    /* ---- Phase 7: System calls ---- */
+    serial_puts("[croOS] Phase 7: Syscalls\n");
+
+    serial_puts("[croOS] Registering system calls...\n");
     syscall_init();
-    vga_puts("  [✓] 42 system calls registered (INT 0x80)\n");
+    serial_puts("[croOS] 42 syscalls registered on INT0x80\n");
+    vga_puts("  [OK] 42 system calls registered (INT 0x80)\n");
 
-    /* Process manager */
+    /* ---- Phase 8: Processes ---- */
+    serial_puts("[croOS] Phase 8: Scheduler\n");
+
+    serial_puts("[croOS] Initializing process scheduler...\n");
     process_init();
-    vga_puts("  [✓] Process scheduler initialized (round-robin)\n");
+    serial_puts("[croOS] Scheduler OK (round-robin, 64 slots)\n");
+    vga_puts("  [OK] Process scheduler initialized (round-robin)\n");
+
+    /* ---- Phase 9: Enable interrupts and launch ---- */
+    serial_puts("[croOS] Phase 9: Enable interrupts\n");
+    serial_puts("[croOS] ============================\n");
+    serial_puts("[croOS] All subsystems initialized!\n");
+    serial_puts("[croOS] Enabling interrupts...\n");
 
     vga_putchar('\n');
     vga_set_color(VGA_LGREEN, VGA_BLACK);
-    vga_puts("  ✓ All subsystems initialized successfully!\n");
+    vga_puts("  All subsystems initialized successfully!\n");
     vga_set_color(VGA_CYAN, VGA_BLACK);
     vga_puts("  Type 'help' for available commands.\n\n");
 
-    serial_puts("[croOS] All subsystems ready. Entering shell.\n");
+    serial_puts("[croOS] Shell starting...\n");
+
+    /* NOW enable interrupts -- all handlers are registered */
+    sti();
 
     /* Enter kernel shell */
     kernel_shell();
